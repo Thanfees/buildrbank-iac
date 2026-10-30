@@ -19,9 +19,21 @@ month**. There is a checklist at the end.
 
 ## Part A · On your laptop
 
-### 1 · Fork it
+### 1 · Fork it, and turn Actions on
 
 Actions only runs in a repo you own. **Fork**, top right of the repo page.
+
+Then — and this one is easy to miss — open the **Actions** tab of *your fork*.
+GitHub disables workflows on a new fork and shows a yellow banner:
+
+> *Workflows aren't being run on this forked repository.*
+
+Click **I understand my workflows, go ahead and enable them**. Until you do,
+pushing does nothing at all: no run appears, no error appears, and you will
+spend twenty minutes looking for a pipeline that was never allowed to start.
+
+✓ The Actions tab shows **Test, build, deploy** in the left sidebar, with no
+yellow banner.
 
 ### 2 · Clone your fork
 
@@ -58,6 +70,26 @@ cp "/Users/you/My Documents/my old project/.env" .env
 > `OPENROUTER_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`.
 
 ✓ `cat .env` shows your OpenRouter, Supabase and Langfuse keys.
+
+**Now go and wake your Supabase project.** Open
+[supabase.com/dashboard](https://supabase.com/dashboard) and look at the project
+your `SUPABASE_URL` points at.
+
+Free projects **pause after a week of no use**, and a paused project has to be
+resumed by hand — there is a **Restore** or **Resume** button on its page. Click
+it and wait for the dashboard to say the project is active. If the project is
+gone entirely, make a new one, run `scripts/schema.sql` in the SQL editor, then
+`python scripts/seed.py`, and put the new URL and key in `.env`.
+
+> **Why this matters more than it looks.** A dead Supabase does not stop the app
+> from starting, and it does not stop `/health` from saying `ok`. Everything
+> will look perfect — green pipeline, page loads — right up until you type your
+> first message and get
+> `ConnectError: [Errno -2] Name or service not known`. That error is DNS
+> failing on a hostname that no longer exists, and nothing about it mentions
+> Supabase.
+
+✓ The Supabase dashboard shows your project as **active**, not paused.
 
 ### 4 · Prove it still works before you change anything
 
@@ -390,10 +422,49 @@ step curls `/health` and refuses to go green until the app answers.
 That page is being served by a container, on a server, that you have never
 logged into.
 
+> **No run at all?** Actions are not enabled on your fork — step 1.
+>
+> **Run green, but Build and push says `skipped` in 0s?** `DOCKERHUB_USER` is
+> not set — step 13. It is a *variable*, not a secret, on the tab next door. A
+> green run is not the same as a deployed run.
+>
 > **First run red?** Open it and read the log. Two likely causes: `invalid
 > format` at the SSH step means `EC2_SSH_KEY` is wrong — set it from the file
 > as in step 12. `pull access denied` means `DOCKERHUB_USER` does not match
 > your account.
+
+### When the page loads but the agent will not answer
+
+You send a message and get back:
+
+```
+The agent could not finish that turn:
+ConnectError: [Errno -2] Name or service not known
+```
+
+The app is fine. Something in your `.env` points at a hostname that does not
+exist — nine times out of ten a Supabase project that is paused or deleted.
+Wake it as in step 3, then put the corrected file on the server:
+
+```bash
+cd infra
+ansible-playbook playbook.yml
+```
+
+That copies the new `.env` across and should say `changed=1`. Then **deploy
+again** — push an empty commit, or re-run the last job:
+
+```bash
+cd ..
+git commit --allow-empty -m "pick up the new .env" && git push
+```
+
+> **Do not reach for `docker restart`.** `--env-file` is read once, when the
+> container is *created*, and the values are baked into it. Restarting reuses
+> them, so an edited `.env` changes nothing and you will think the fix failed.
+> The container has to be **recreated** — which is exactly what the deploy job
+> does: `docker rm -f bank` and then `docker run … --env-file ~/.env`. That is
+> why the fix is "push again", not "restart it".
 
 ---
 
