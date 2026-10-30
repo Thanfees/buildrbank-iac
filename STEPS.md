@@ -613,18 +613,26 @@ Empty output means nothing is running.
 ```bash
 terraform apply
 ansible-playbook playbook.yml
-cd .. && gh secret set EC2_HOST --body "$(cd infra && terraform output -raw ip)"
+cd ..
+gh secret set EC2_HOST    --body "$(cd infra && terraform output -raw ip)"
+gh secret set EC2_SSH_KEY < infra/buildrbank-key.pem
 git commit --allow-empty -m "rebuild" && git push
 ```
 
-No `gh`? The only line that needs it is the third. Run
-`cd infra && terraform output -raw ip`, then paste that number into
-**Settings → Secrets and variables → Actions → `EC2_HOST` → Update**, and push.
+No `gh`? Only the two secret lines need it. Run
+`cd infra && terraform output -raw ip` for the address, open
+`infra/buildrbank-key.pem` for the key, and update both under
+**Settings → Secrets and variables → Actions**. Then push.
 
-> **The address changes every time.** `EC2_HOST` is the one thing that does not
-> update itself — Terraform rewrites `inventory.ini`, but GitHub only knows what
-> you last told it. Forget this and the pipeline deploys to a server that is no
-> longer there.
+> **Both secrets go stale, not just the address.** Terraform rewrites
+> `inventory.ini` for you, but GitHub only knows what you last told it — and a
+> rebuild generates a **brand new SSH key**, because `aws_key_pair` was
+> destroyed along with everything else. The old `EC2_SSH_KEY` is now a key AWS
+> has never heard of.
+>
+> Forget `EC2_HOST` and the pipeline deploys to a server that is no longer
+> there. Forget `EC2_SSH_KEY` and the deploy job stops at the SSH step with
+> `Permission denied (publickey)`. Re-set both, every rebuild.
 
 About four minutes, and the app is live again at a new address.
 
