@@ -1,0 +1,18 @@
+.env
+.venv/
+/data/
+__pycache__/
+*.pyc
+.DS_Store
+.pytest_cache/
+
+# ---- Week 08: infrastructure ----------------------------------
+# Terraform's downloads and its notebook. The state file records what
+# you built and can contain sensitive values - it never goes in git.
+infra/.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# The private key Terraform generates for you.
+*.pem

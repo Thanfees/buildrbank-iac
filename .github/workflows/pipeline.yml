@@ -1,0 +1,223 @@
+# =================================================================
+# The whole pipeline, in one file.
+#
+# This is the file you completed in Week 06. It is finished here on
+# purpose - this week is not about the pipeline, it is about where the
+# server it deploys to comes from.
+#
+#   on any branch ...  test
+#   on dev ..........  test -> build & push -> deploy to :8001, the sandbox
+#   on main .........  test -> build & push -> deploy to :8000, the real one
+#
+# It needs one repository variable and three secrets. Two of those three
+# - EC2_HOST and EC2_SSH_KEY - are produced by Terraform in infra/,
+# not copied out of the AWS console. That is the whole point of Week 08.
+# =================================================================
+name: Test, build, deploy
+
+# -----------------------------------------------------------------
+# WHEN. Every push to every branch, and every pull request.
+# The build and deploy jobs further down are fenced off to two branches,
+# main and dev. Every other branch gets you tests and nothing else. That
+# is what makes a branch a safe place to be wrong.
+# -----------------------------------------------------------------
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+env:
+  # Your Docker Hub username. You do not type it here - you set it as a
+  # repository VARIABLE, in the same place as the secrets but on the
+  # "Variables" tab next door.
+  #
+  # That tab is the whole lesson. A username is not a secret: it is
+  # printed on every image you have ever pushed, and GitHub will happily
+  # show it back to you. A token is a secret: paste it once and even you
+  # cannot read it again. Knowing which is which is most of knowing how
+  # to handle credentials - and GitHub made you a separate tab for it.
+  DOCKERHUB_USER: ${{ vars.DOCKERHUB_USER }}
+  IMAGE: buildrbank-iac
+
+# `ubuntu-24.04`, not `ubuntu-latest`. "latest" is a moving target - it
+# became Ubuntu 26 in late 2026 - and a runner changing underneath you
+# produces failures that have nothing to do with anything you changed.
+# Same reasoning as `FROM python:3.12-slim` in the Dockerfile.
+
+jobs:
+
+  # ===============================================================
+  # 1. TEST - about a minute, no secrets, runs on everything
+  # ===============================================================
+  test:
+    name: Tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v5
+
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'   # the same version the Dockerfile pins
+          cache: pip               # remember the downloads, so run 2 is faster
+
+      - name: Install the libraries
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run the tests
+        run: python -m pytest -q
+      # Notice what is missing: credentials. tests/conftest.py supplies
+      # fakes, and nothing in the suite calls a model or a database. That
+      # is why this job is safe to run on a pull request from anyone.
+
+  # ===============================================================
+  # 2. BUILD - build the image once, on a machine that is already x86
+  # ===============================================================
+  build:
+    name: Build and push
+    needs: test                              # red tests, no image. Full stop.
+    # Two conditions. Only main and dev build an image - every other
+    # branch stops at the tests. And so does a repo where DOCKERHUB_USER
+    # has not been set yet, which is why this says "skipped" rather than
+    # "failed" before you have configured anything.
+    if: contains(fromJSON('["main","dev"]'), github.ref_name) && vars.DOCKERHUB_USER != ''
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v5
+
+      # ---------------------------------------------------------
+      # Those 40-character numbers are not decoration.
+      #
+      # `uses: someone/action@v4` means "whatever v4 points at today".
+      # A tag is a label, and the person who owns the repo can move it.
+      # If someone moves it - or steals the account and moves it - their
+      # code runs inside THIS job, where your Docker Hub token and your
+      # server's private key both are. This has really happened, to a
+      # popular action, in 2025.
+      #
+      # A commit id cannot be moved. It names one exact snapshot of the
+      # code, forever. The `# v4.4.1` on the end is just a note to humans
+      # about which release that snapshot was.
+      #
+      # actions/* above keep their version tags: those are GitHub's own,
+      # on GitHub's servers. Everything from anyone else gets pinned.
+      # ---------------------------------------------------------
+      - name: Set up the builder
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f  # v4.6.0
+        with:
+          username: ${{ env.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build it and push it
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
+        with:
+          context: .
+          # Last week this flag was the fix for a confusing crash: your Mac
+          # is arm64, the server is x86. This machine is already x86, so the
+          # mismatch you hit by hand cannot happen here.
+          platforms: linux/amd64
+          push: true
+          # Two tags. The first is the branch's own name - :main or :dev. It
+          # moves every time you push to that branch, so it cannot take
+          # you back; and it keeps the two branches apart, so a dev build
+          # can never become the thing main deploys.
+          # The sha tag never moves. It is how you undo a bad afternoon.
+          #
+          tags: |
+            ${{ env.DOCKERHUB_USER }}/${{ env.IMAGE }}:${{ github.ref_name }}
+            ${{ env.DOCKERHUB_USER }}/${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ===============================================================
+  # 3. DEPLOY - walk in, swap the container, prove it answers
+  #
+  # One server, two slots. Same machine, same keys, two containers on
+  # two ports:
+  #
+  #   dev   ->  container "bank-dev"  on port 8001   the sandbox
+  #   main  ->  container "bank"      on port 8000   the real one
+  #
+  # Two jobs rather than one with an if/else inside it, for a reason you
+  # can see: the run graph draws both, and greys out the one that did not
+  # run. The picture tells you which path your push took.
+  #
+  # Both slots read the same ~/.env, so both talk to the same Supabase.
+  # dev is a separate container, not a separate world - remember that
+  # before you experiment with anything that writes.
+  # ===============================================================
+
+  deploy-dev:
+    name: Deploy to dev
+    needs: build
+    if: github.ref_name == 'dev' && vars.DOCKERHUB_USER != ''
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Swap the dev container
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
+        with:
+          # Both of these are written by Terraform - see infra/README or STEPS.md.
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            docker pull ${{ env.DOCKERHUB_USER }}/${{ env.IMAGE }}:dev
+            docker rm -f bank-dev || true
+            docker run -d --name bank-dev --restart unless-stopped -p 8001:8000 --env-file ~/.env ${{ env.DOCKERHUB_USER }}/${{ env.IMAGE }}:dev
+
+      - name: Is dev actually up?
+        run: |
+          for i in $(seq 1 10); do
+            if curl -fsS "http://${{ secrets.EC2_HOST }}:8001/health" | grep -q '"status":"ok"'; then
+              echo "dev is live on :8001"
+              exit 0
+            fi
+            echo "not answering yet ($i/10)"
+            sleep 5
+          done
+          echo "::error::dev never came up - on the server, run: docker logs bank-dev"
+          exit 1
+
+  deploy-prod:
+    name: Deploy to production
+    needs: build
+    if: github.ref_name == 'main' && vars.DOCKERHUB_USER != ''
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Swap the production container
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            docker pull ${{ env.DOCKERHUB_USER }}/${{ env.IMAGE }}:main
+            docker rm -f bank || true
+            # The number on the LEFT is the door on the server people knock
+            # on; the number on the RIGHT is the port the app listens on inside
+            # the container. dev answers on 8001, production on 8000.
+            docker run -d --name bank --restart unless-stopped -p 8000:8000 --env-file ~/.env ${{ env.DOCKERHUB_USER }}/${{ env.IMAGE }}:main
+
+      - name: Is production actually up?
+        # The deploy step going green only means the commands ran. This asks
+        # the server itself. /health says "ok" only after the agent has been
+        # built and has reached Supabase - so a green tick here means the
+        # whole thing works, not just that Docker was willing to start it.
+        run: |
+          for i in $(seq 1 10); do
+            if curl -fsS "http://${{ secrets.EC2_HOST }}:8000/health" | grep -q '"status":"ok"'; then
+              echo "production is live on :8000"
+              exit 0
+            fi
+            echo "not answering yet ($i/10)"
+            sleep 5
+          done
+          echo "::error::production never came up - on the server, run: docker logs bank"
+          exit 1

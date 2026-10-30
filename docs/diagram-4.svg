@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 330" width="1000" height="330" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="One push runs three jobs on GitHub Actions. Tests must pass before an image is built. The image goes to Docker Hub, and the deploy job pulls it onto the EC2 server: a push to dev lands in the bank-dev container on port 8001, a push to main lands in the bank container on port 8000. A push to any other branch runs the tests and stops.">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10z" fill="#777"/>
+    </marker>
+    <symbol id="i-laptop" viewBox="0 0 24 24"><g fill="none" stroke="#6c8ebf" stroke-width="1.8" stroke-linejoin="round"><rect x="3.2" y="4.6" width="17.6" height="11.4" rx="1.2"/><path d="M1.4 18.8h21.2"/></g></symbol>
+    <symbol id="i-github" viewBox="0 0 24 24"><path fill="#4D5156" d="M12 1.8a10.2 10.2 0 0 0-3.2 19.9c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.6 1 1.6 1 .9 1.5 2.3 1.1 2.9.9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v2.9c0 .3.2.6.7.5A10.2 10.2 0 0 0 12 1.8z"/></symbol>
+    <symbol id="i-docker" viewBox="0 0 24 24"><g fill="#2496ED"><rect x="2.1" y="10.6" width="3.9" height="3.3" rx=".35"/><rect x="6.6" y="10.6" width="3.9" height="3.3" rx=".35"/><rect x="11.1" y="10.6" width="3.9" height="3.3" rx=".35"/><rect x="6.6" y="6.9" width="3.9" height="3.3" rx=".35"/><rect x="11.1" y="6.9" width="3.9" height="3.3" rx=".35"/><rect x="11.1" y="3.2" width="3.9" height="3.3" rx=".35"/><path d="M1 14.6c0 3 2.1 5.1 5.5 5.1 5.1 0 9.2-2.4 11.1-7 1.6.5 3.2.1 4-1.1-1.1-.9-2.5-1-3.5-.5-.2-1.1-.9-1.9-1.9-2.4-.8 1-1 2.4-.4 3.4H1z"/></g></symbol>
+    <symbol id="i-aws" viewBox="0 0 24 24"><text x="12" y="11" text-anchor="middle" font-size="8.5" font-weight="bold" font-family="Arial,Helvetica,sans-serif" fill="#232F3E">aws</text><path d="M3.2 15.2c5.2 3.3 12.4 3.3 17.6 0" fill="none" stroke="#FF9900" stroke-width="2" stroke-linecap="round"/><path d="M18.6 12.9 21.8 15 18.2 16.7z" fill="#FF9900"/></symbol>
+  </defs>
+
+  <!-- Docker Hub, above the pipeline: build pushes up to it, deploy pulls down from it -->
+  <rect x="360" y="16" width="240" height="56" rx="3" fill="#fff2cc" stroke="#d6b656"/>
+  <use href="#i-docker" x="378" y="32" width="22" height="22"/>
+  <text x="408" y="40" font-size="13" font-weight="bold" fill="#1A1D21">Docker Hub</text>
+  <text x="408" y="58" font-size="11.5" fill="#4D5156">one image, tagged :dev or :main</text>
+
+  <!-- YOUR LAPTOP -->
+  <rect x="14" y="104" width="124" height="128" rx="4" fill="#fafafa" stroke="#999" stroke-dasharray="6 4"/>
+  <use href="#i-laptop" x="26" y="114" width="18" height="18"/>
+  <text x="50" y="128" font-size="11" font-weight="bold" fill="#4D5156">YOUR LAPTOP</text>
+  <rect x="28" y="150" width="96" height="56" rx="3" fill="#dae8fc" stroke="#6c8ebf"/>
+  <text x="76" y="174" font-size="13" font-weight="bold" text-anchor="middle" fill="#1A1D21">git push</text>
+  <text x="76" y="192" font-size="11" text-anchor="middle" fill="#4D5156">that is all</text>
+
+  <!-- GITHUB ACTIONS -->
+  <rect x="152" y="104" width="518" height="128" rx="4" fill="#fafafa" stroke="#999" stroke-dasharray="6 4"/>
+  <use href="#i-github" x="164" y="114" width="18" height="18"/>
+  <text x="188" y="128" font-size="11" font-weight="bold" fill="#4D5156">GITHUB ACTIONS — a rented machine, about 90 seconds</text>
+
+  <rect x="172" y="150" width="128" height="56" rx="3" fill="#d5e8d4" stroke="#82b366"/>
+  <text x="236" y="174" font-size="13" font-weight="bold" text-anchor="middle" fill="#1A1D21">Tests</text>
+  <text x="236" y="192" font-size="11" text-anchor="middle" fill="#4D5156">10, no keys</text>
+
+  <rect x="320" y="150" width="152" height="56" rx="3" fill="#d5e8d4" stroke="#82b366"/>
+  <text x="396" y="174" font-size="13" font-weight="bold" text-anchor="middle" fill="#1A1D21">Build &amp; push</text>
+  <text x="396" y="192" font-size="11" text-anchor="middle" fill="#4D5156">dev and main only</text>
+
+  <rect x="492" y="150" width="156" height="56" rx="3" fill="#d5e8d4" stroke="#82b366"/>
+  <text x="570" y="174" font-size="13" font-weight="bold" text-anchor="middle" fill="#1A1D21">Deploy</text>
+  <text x="570" y="192" font-size="11" text-anchor="middle" fill="#4D5156">ssh, swap, check</text>
+
+  <!-- YOUR SERVER -->
+  <rect x="686" y="92" width="300" height="152" rx="4" fill="#fafafa" stroke="#999" stroke-dasharray="6 4"/>
+  <use href="#i-aws" x="698" y="102" width="18" height="18"/>
+  <text x="722" y="116" font-size="11" font-weight="bold" fill="#4D5156">YOUR SERVER · ONE EC2</text>
+  <rect x="704" y="130" width="266" height="48" rx="3" fill="#e1d5e7" stroke="#9673a6"/>
+  <text x="720" y="151" font-size="12.5" font-weight="bold" font-family="monospace" fill="#1A1D21">bank-dev</text>
+  <text x="720" y="168" font-size="11" fill="#4D5156">port 8001 · the sandbox</text>
+  <rect x="704" y="186" width="266" height="48" rx="3" fill="#e1d5e7" stroke="#9673a6"/>
+  <text x="720" y="207" font-size="12.5" font-weight="bold" font-family="monospace" fill="#1A1D21">bank</text>
+  <text x="720" y="224" font-size="11" fill="#4D5156">port 8000 · the real one</text>
+
+  <!-- arrows -->
+  <path d="M124 178H168" fill="none" stroke="#777" stroke-width="1.6" marker-end="url(#a)"/>
+  <path d="M300 178H316" fill="none" stroke="#777" stroke-width="1.6" marker-end="url(#a)"/>
+  <path d="M472 178H488" fill="none" stroke="#777" stroke-width="1.6" marker-end="url(#a)"/>
+  <path d="M396 150V76" fill="none" stroke="#777" stroke-width="1.6" marker-end="url(#a)"/>
+  <path d="M570 76V146" fill="none" stroke="#777" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="404" y="116" font-size="11" fill="#4D5156">push</text>
+  <text x="578" y="116" font-size="11" fill="#4D5156">pull</text>
+
+  <path d="M648 178h22V154h30" fill="none" stroke="#777" stroke-width="1.6" marker-end="url(#a)"/>
+  <path d="M648 178h22v32h30" fill="none" stroke="#777" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="676" y="146" font-size="11" font-weight="bold" fill="#9673a6">on dev</text>
+  <text x="676" y="228" font-size="11" font-weight="bold" fill="#9673a6">on main</text>
+
+  <!-- the gate -->
+  <text x="396" y="226" font-size="11" font-weight="bold" text-anchor="middle" fill="#82b366">no image is built from a red test</text>
+
+  <!-- the third path -->
+  <path d="M236 206V244" fill="none" stroke="#b85450" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#a)"/>
+  <rect x="156" y="248" width="160" height="40" rx="3" fill="#f8cecc" stroke="#b85450"/>
+  <text x="236" y="265" font-size="11.5" font-weight="bold" text-anchor="middle" fill="#1A1D21">any other branch</text>
+  <text x="236" y="280" font-size="11" text-anchor="middle" fill="#4D5156">tests run, nothing ships</text>
+
+  <text x="500" y="312" font-size="11.5" text-anchor="middle" fill="#4D5156">Both containers read the same <tspan font-family="monospace">~/.env</tspan> on the server. It is placed once, by hand, and never travels through GitHub.</text>
+</svg>

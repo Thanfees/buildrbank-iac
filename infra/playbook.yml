@@ -1,0 +1,66 @@
+---
+# ---------------------------------------------------------------
+# The server, made ready.
+#
+# In Week 06 this was steps 7 to 9 of STEPS.md, typed over SSH:
+# send your keys across, install Docker, log out and back in.
+# Read the task names below - it is the same list, in the same order.
+#
+# Note what this playbook does NOT do: it does not deploy the app.
+# That is the pipeline's job. Ansible's job is to make the server a
+# place the pipeline can deploy to.
+# ---------------------------------------------------------------
+- name: Make the server ready for BuildrBank
+  hosts: bank
+  become: yes
+
+  pre_tasks:
+    - name: Wait until the server is accepting SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+
+  tasks:
+    - name: Install Docker
+      ansible.builtin.apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Let the ubuntu user run docker without sudo
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    # This is the step that used to be "paste your keys into a terminal".
+    # The file goes from your laptop to the server and nowhere else -
+    # .gitignore keeps it out of the repository, and it is never printed.
+    - name: Put your .env on the server
+      ansible.builtin.copy:
+        src: ../.env
+        dest: /home/ubuntu/.env
+        owner: ubuntu
+        group: ubuntu
+        mode: "0600"
+
+  post_tasks:
+    - name: Check Docker really is installed
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Check the .env arrived
+      ansible.builtin.stat:
+        path: /home/ubuntu/.env
+      register: envfile
+
+    - name: Report
+      ansible.builtin.assert:
+        that:
+          - docker_version.rc == 0
+          - envfile.stat.exists
+          - envfile.stat.mode == "0600"
+        success_msg: >-
+          Ready. {{ docker_version.stdout }}, and ~/.env is in place.
+          The pipeline can deploy here now.
+        fail_msg: "Not ready - see the failed task above."
