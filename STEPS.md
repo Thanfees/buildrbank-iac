@@ -23,33 +23,39 @@ month**. There is a checklist at the end.
 
 Actions only runs in a repo you own. **Fork**, top right of the repo page.
 
-### 2 · Clone it, next to last week's folders
+### 2 · Clone your fork
 
 ```bash
-cd WHEREVER-YOUR-WEEK-06-FOLDER-LIVES
 git clone https://github.com/YOUR-NAME/buildrbank-iac.git
 cd buildrbank-iac
 ```
 
-✓ `ls ..` shows `buildrbank-cicd` and `buildrbank-iac` side by side.
+Put it wherever you keep your work. This repo is self-contained — it does not
+need to sit next to anything from a previous week.
 
-### 3 · Bring your keys across
+✓ `ls` shows `app`, `infra` and `Dockerfile`.
+
+### 3 · Bring your `.env` across
+
+Everything in this repo is ready except one file: your keys. **That is the only
+thing you need from a previous week**, because it was never in git.
 
 ```bash
-cp ../buildrbank-cicd/.env .env
+cp /PATH/TO/YOUR/.env .env
 ```
 
-`.env` is in `.gitignore`. It is the one file that never goes into git.
+Point that at whichever folder holds the `.env` you were using in Week 05 or 06.
+Put quotes around the path if any folder name contains a space — without them the
+shell splits at every space and you get `cp: .env: Not a directory`, which does
+not mention spaces at all:
 
-> **If your Week 06 folder is somewhere else,** use the full path — and put
-> quotes around it if any folder name contains a space:
->
-> ```bash
-> cp "/Users/you/My Documents/buildrbank-cicd/.env" .env
-> ```
->
-> Without the quotes the shell splits the path at every space and you get
-> `cp: .env: Not a directory`, which does not mention spaces at all.
+```bash
+cp "/Users/you/My Documents/my old project/.env" .env
+```
+
+> **Cannot find it?** Open `.env.example` — it lists every value. Three of them
+> are required and the app will not start without them:
+> `OPENROUTER_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`.
 
 ✓ `cat .env` shows your OpenRouter, Supabase and Langfuse keys.
 
