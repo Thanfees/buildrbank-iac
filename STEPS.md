@@ -161,6 +161,11 @@ server, and `buildrbank-key.pem` written next to `main.tf`.
 ✓ The EC2 console shows an instance named `buildrbank` — and nobody filled in
 a form to put it there.
 
+> **`Failed to obtain provider schema … timeout while waiting for plugin to
+> start`?** The AWS plugin is large and sometimes times out the first time it
+> is started. Nothing is wrong and nothing was created. Run `terraform apply`
+> again.
+
 > **Change the region** by editing the one `default` line at the top of
 > `main.tf`. There is no AMI id to look up: `data "aws_ami"` asks AWS at run
 > time for the newest Ubuntu 24.04 in whatever region you chose.
@@ -176,7 +181,7 @@ Change nothing else.
 
 ```ini
 [bank]
-54.196.211.183
+34.201.103.207
 
 [bank:vars]
 ansible_user=ubuntu
@@ -194,21 +199,22 @@ About a minute and a half. Read the task names as they go past — it is Week
 
 ```
 TASK [Install Docker] **********************************
-changed: [54.196.211.183]
+changed: [34.201.103.207]
 
 TASK [Let the ubuntu user run docker without sudo] ******
-changed: [54.196.211.183]
+changed: [34.201.103.207]
 
 TASK [Put your .env on the server] **********************
-changed: [54.196.211.183]
+changed: [34.201.103.207]
 
 TASK [Report] *******************************************
-ok: [54.196.211.183] => {
-    "msg": "Ready. Docker version 27.x.x, and ~/.env is in place."
+ok: [34.201.103.207] => {
+    "msg": "Ready. Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2,
+            and ~/.env is in place. The pipeline can deploy here now."
 }
 
 PLAY RECAP **********************************************
-54.196.211.183  : ok=7  changed=3  unreachable=0  failed=0
+34.201.103.207  : ok=8  changed=3  unreachable=0  failed=0
 ```
 
 Now run the **exact same command again**:
@@ -218,7 +224,7 @@ ansible-playbook playbook.yml
 ```
 
 ```
-54.196.211.183  : ok=7  changed=0  unreachable=0  failed=0
+34.201.103.207  : ok=8  changed=0  unreachable=0  failed=0
 ```
 
 **`changed=0`.** It checked all three things, found them already correct, and
