@@ -104,9 +104,13 @@ Windows: `.venv\Scripts\activate`, and use `python`, not `python3`.
 
 ✓ Six green ticks.
 
-### 5 · Install the two new tools
+### 5 · Install the three tools
 
-You need **Terraform** and **Ansible**. Find your row and do only that one.
+You need **Terraform**, **Ansible**, and the **AWS CLI**. Terraform and Ansible
+are new this week. The AWS CLI is new too — in Week 06 you only ever used the
+AWS *console*, in a browser, so you almost certainly do not have it.
+
+Find your row and do only that one.
 
 **macOS**
 
@@ -114,6 +118,7 @@ You need **Terraform** and **Ansible**. Find your row and do only that one.
 brew tap hashicorp/tap
 brew install hashicorp/tap/terraform
 brew install ansible
+brew install awscli
 ```
 
 **Ubuntu, or Windows with WSL**
@@ -134,16 +139,34 @@ echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://
 sudo apt update && sudo apt install -y terraform
 ```
 
+And the AWS CLI, which is not in apt — you download it from AWS:
+
+```bash
+sudo apt install -y unzip
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
+unzip -q awscliv2.zip
+sudo ./aws/install
+```
+
 > **There is no Windows version of Ansible.** It has to run from Linux. WSL
 > is that Linux. If WSL fought you in Week 01, use **AWS CloudShell** instead
 > — the `>_` icon in the AWS console, then `sudo dnf install -y ansible` and
-> the HashiCorp repo for Terraform.
+> the HashiCorp repo for Terraform. CloudShell already has the AWS CLI, and it
+> is already signed in as you, so you can skip steps 6 and 7 entirely.
 
-✓ Both of these print a version number:
+> **Git Bash is not a substitute for WSL.** Terraform, the AWS CLI, `git` and
+> `gh` all work there, so you can do most of this week in it — but Ansible
+> cannot. It needs Python modules that only exist on Linux, so `pip install
+> ansible` appears to succeed and then `ansible --version` fails with
+> `ModuleNotFoundError: No module named 'pwd'`. For step 10, use WSL or
+> CloudShell.
+
+✓ All three of these print a version number:
 
 ```bash
 terraform -version
 ansible --version
+aws --version
 ```
 
 ---
