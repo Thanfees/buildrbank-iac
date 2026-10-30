@@ -1,6 +1,6 @@
 # The server, written down — the whole thing, step by step
 
-Seventeen steps. You do every one by hand: a browser, a terminal, and your
+Eighteen steps. You do every one by hand: a browser, a terminal, and your
 own typing. Nothing here needs an assistant, and nothing here is magic.
 
 By the end you will have built a server, configured it, deployed to it, and
@@ -11,7 +11,7 @@ it all again in about four minutes, which is the part that matters.
 > handout's font joins `--` and `//` into one character when you copy it,
 > which breaks `--name` and `https://` in ways the error message disguises.
 
-**What this costs.** A `t3.small` is about 2 US cents an hour. Follow step 16
+**What this costs.** A `t3.small` is about 2 US cents an hour. Follow step 17
 and the whole session costs a few cents. Skip it and it is about **$15 a
 month**. There is a checklist at the end.
 
@@ -118,26 +118,78 @@ ansible --version
 
 ## Part B · One server, from two files
 
-This is the part that replaces Week 06's Part B. Last week it was five steps
-in a browser and over SSH. This week it is two commands.
+This is the part that replaces Week 06's Part B, where you clicked through the
+EC2 wizard and then SSH'd in twice.
 
-### 6 · Point the AWS CLI at your account
+Steps 6 and 7 are **one-off setup** — an access key, because the AWS API cannot
+use the password you log into the console with. You do them once and never
+again. After that, building and preparing a server is **two commands**, and it
+is the same two commands every time.
+
+### 6 · Make an AWS access key
+
+Terraform talks to AWS over the API, as you. Up to now you have only signed in
+to the **console**, with an email and a password. The API cannot use those — it
+needs an **access key**, and you do not have one yet.
+
+Make one now. It takes about a minute.
+
+1. AWS Console → search for **IAM** → **Users** → **Create user**
+2. Call it `buildrbank-iac`. Leave console access **off** — this user is only
+   for the command line. **Next**.
+3. **Attach policies directly** → tick **`AmazonEC2FullAccess`** → **Next** →
+   **Create user**
+4. Click the user you just made → the **Security credentials** tab →
+   **Create access key**
+5. Choose **Command Line Interface (CLI)**, tick the confirmation box →
+   **Next** → **Create access key**
+
+You are now shown two values: an **Access key ID** that starts `AKIA`, and a
+**Secret access key**.
+
+**Copy both before you leave that page.** The secret is shown once and never
+again. If you lose it, delete the key and create another — that is normal, and
+it costs nothing.
+
+> **Treat the secret like a password.** It never goes near this folder —
+> `aws configure` stores it under `~/.aws/`. Do not paste it into a file in the
+> repo, and do not put it on a screen you are sharing.
+
+> **Why `AmazonEC2FullAccess`?** Terraform has to create an instance, a key
+> pair and a security group, and delete all three again. A narrower policy is
+> better practice for a real system, but a missing permission here shows up as
+> `UnauthorizedOperation` halfway through an apply — a miserable way to spend
+> your first afternoon.
+
+✓ You have two strings, one of them starting `AKIA`.
+
+### 7 · Point the AWS CLI at your account
 
 ```bash
 aws configure
 ```
 
-Your key, your secret, the region you used in Week 05, and `json`.
+It asks four things:
+
+| It asks | You give it |
+| --- | --- |
+| AWS Access Key ID | the `AKIA…` value from step 6 |
+| AWS Secret Access Key | the secret from step 6 |
+| Default region name | `us-east-1` — the same value as `region` in `infra/main.tf` |
+| Default output format | `json` |
 
 ✓ `aws sts get-caller-identity` prints your account number.
 
-> **`UnauthorizedOperation` later on?** Your AWS user is not allowed to
-> create servers. **IAM → Users → your user → Add permissions → Attach
-> policies directly → `AmazonEC2FullAccess`.** The long
-> `Encoded authorization failure message` in that error is not something you
-> need to read — the action name just before it is the whole answer.
+> **`Unable to locate credentials`?** Nothing saved. Run `aws configure` again
+> and check you pasted both values.
+>
+> **`UnauthorizedOperation` later on?** The user from step 6 is missing
+> `AmazonEC2FullAccess`. **IAM → Users → `buildrbank-iac` → Add permissions →
+> Attach policies directly.** The long `Encoded authorization failure message`
+> in that error is not something you need to read — the action name just before
+> it is the whole answer.
 
-### 7 · Build the server
+### 8 · Build the server
 
 ```bash
 cd infra
@@ -176,7 +228,7 @@ a form to put it there.
 > `main.tf`. There is no AMI id to look up: `data "aws_ami"` asks AWS at run
 > time for the newest Ubuntu 24.04 in whatever region you chose.
 
-### 8 · Write the address down — in a file, this time
+### 9 · Write the address down — in a file, this time
 
 ```bash
 terraform output -raw ip
@@ -194,7 +246,7 @@ ansible_user=ubuntu
 ansible_ssh_private_key_file=./buildrbank-key.pem
 ```
 
-### 9 · Make the server ready
+### 10 · Make the server ready
 
 ```bash
 ansible-playbook playbook.yml
@@ -251,7 +303,7 @@ application on it yet — that is the pipeline's job, and it starts now.
 
 ## Part C · Tell GitHub who you are
 
-### 10 · A Docker Hub token
+### 11 · A Docker Hub token
 
 Docker Hub → **Account settings** → **Personal access tokens** → **Generate
 new token**. Permissions: **Read & Write**.
@@ -261,7 +313,7 @@ Copy it now. You cannot read it again.
 > A read-only token still *logs in* successfully and only fails at the push,
 > so the error arrives late and blames the wrong step.
 
-### 11 · Three secrets — two of them written by Terraform
+### 12 · Three secrets — two of them written by Terraform
 
 If you have the GitHub CLI, this is three lines from the repo root:
 
@@ -287,11 +339,11 @@ variables** → **Actions** → **New repository secret**, three times:
 
 | Name | Value |
 |---|---|
-| `DOCKERHUB_TOKEN` | the token from step 10 |
+| `DOCKERHUB_TOKEN` | the token from step 11 |
 | `EC2_HOST` | the number from `terraform output -raw ip` — no `http://`, no `:8000` |
 | `EC2_SSH_KEY` | the whole of `infra/buildrbank-key.pem`, `-----BEGIN` and `-----END` included, and press Enter once after pasting |
 
-### 12 · One variable
+### 13 · One variable
 
 Same page, the **Variables** tab next door → **New repository variable**:
 
@@ -310,7 +362,7 @@ pushed. A token is. GitHub built the distinction into the furniture.
 
 ## Part D · The pipeline
 
-### 13 · Push, and watch it run
+### 14 · Push, and watch it run
 
 The pipeline is already complete in this repo — you wrote it last week, so
 there is nothing to fill in. Give it something to do:
@@ -340,14 +392,14 @@ logged into.
 
 > **First run red?** Open it and read the log. Two likely causes: `invalid
 > format` at the SSH step means `EC2_SSH_KEY` is wrong — set it from the file
-> as in step 11. `pull access denied` means `DOCKERHUB_USER` does not match
+> as in step 12. `pull access denied` means `DOCKERHUB_USER` does not match
 > your account.
 
 ---
 
 ## Part E · Make it yours
 
-### 14 · Change something, on dev
+### 15 · Change something, on dev
 
 ```bash
 git switch -c dev
@@ -366,7 +418,7 @@ This time **Deploy to dev** runs and **Deploy to production** is greyed out.
 ✓ `http://YOUR-IP:8001` shows your change. `http://YOUR-IP:8000` still shows
 the old one. Two containers, one server, same `~/.env`.
 
-### 15 · Ship it
+### 16 · Ship it
 
 ```bash
 git switch main
@@ -380,7 +432,7 @@ git push
 
 ## Part F · Put it away
 
-### 16 · Destroy it — this is not optional
+### 17 · Destroy it — this is not optional
 
 ```bash
 cd infra
@@ -414,7 +466,7 @@ aws ec2 describe-instances \
 
 Empty output means nothing is running.
 
-### 17 · Now build it again
+### 18 · Now build it again
 
 ```bash
 terraform apply
