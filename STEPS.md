@@ -104,11 +104,16 @@ Windows: `.venv\Scripts\activate`, and use `python`, not `python3`.
 
 ✓ Six green ticks.
 
-### 5 · Install the three tools
+### 5 · Install the tools
 
-You need **Terraform**, **Ansible**, and the **AWS CLI**. Terraform and Ansible
-are new this week. The AWS CLI is new too — in Week 06 you only ever used the
-AWS *console*, in a browser, so you almost certainly do not have it.
+You need **Terraform**, **Ansible** and the **AWS CLI**. All three are new this
+week — in Week 06 you only ever used the AWS *console*, in a browser, so you do
+not have the CLI either.
+
+There is also a fourth, **the GitHub CLI (`gh`)**, which is **optional**. Every
+step in this sheet can be done in the browser instead, and where that is true
+it says so. It is worth installing anyway for one line in step 12 — it removes
+the single most error-prone moment of Week 06.
 
 Find your row and do only that one.
 
@@ -119,6 +124,7 @@ brew tap hashicorp/tap
 brew install hashicorp/tap/terraform
 brew install ansible
 brew install awscli
+brew install gh        # optional
 ```
 
 **Ubuntu, or Windows with WSL**
@@ -148,6 +154,16 @@ unzip -q awscliv2.zip
 sudo ./aws/install
 ```
 
+Optionally the GitHub CLI, which has its own list like Terraform's:
+
+```bash
+sudo mkdir -p -m 755 /etc/apt/keyrings
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+sudo apt update && sudo apt install -y gh
+```
+
 > **There is no Windows version of Ansible.** It has to run from Linux. WSL
 > is that Linux. If WSL fought you in Week 01, use **AWS CloudShell** instead
 > — the `>_` icon in the AWS console, then `sudo dnf install -y ansible` and
@@ -168,6 +184,27 @@ terraform -version
 ansible --version
 aws --version
 ```
+
+**If you installed `gh`**, sign it in once:
+
+```bash
+gh auth login
+```
+
+Choose GitHub.com, HTTPS, and let it authenticate Git operations too.
+
+> **It has to be the account that owns your fork.** If you have a work GitHub
+> and a personal one, this is the single easiest thing to get wrong. `gh` is
+> also what Git uses to push over HTTPS, so the wrong account here breaks both
+> `gh secret set` *and* `git push`, with two different-looking errors:
+> `HTTP 403: You must have repository read permissions` and
+> `remote: Permission to ... denied`.
+>
+> ```bash
+> gh auth status
+> ```
+>
+> ✓ It names the same account that owns your fork.
 
 ---
 
@@ -283,16 +320,17 @@ a form to put it there.
 > `main.tf`. There is no AMI id to look up: `data "aws_ami"` asks AWS at run
 > time for the newest Ubuntu 24.04 in whatever region you chose.
 
-### 9 · Write the address down — in a file, this time
+### 9 · Look at what Terraform already wrote
+
+You do not have to type the address anywhere. Terraform knew it the moment the
+server existed, so it wrote Ansible's inventory for you:
 
 ```bash
-terraform output -raw ip
+cat inventory.ini
 ```
 
-Open `inventory.ini` and replace `PASTE_THE_IP_HERE` with that number.
-Change nothing else.
-
 ```ini
+# Written by Terraform on every apply. Do not edit by hand.
 [bank]
 34.201.103.207
 
@@ -300,6 +338,16 @@ Change nothing else.
 ansible_user=ubuntu
 ansible_ssh_private_key_file=./buildrbank-key.pem
 ```
+
+That is the handover between the two tools, and it is worth a second of your
+attention: **Terraform's output is Ansible's input**, and no human retyped it.
+
+The file is in `.gitignore`, for two reasons. It is rebuilt by every `apply`, so
+committing it would mean a pointless commit every time you rebuild. And a
+cloned repo carrying someone else's dead address is exactly how you end up
+deploying to a server that no longer exists.
+
+✓ `cat inventory.ini` shows the same number as `terraform output -raw ip`.
 
 ### 10 · Make the server ready
 
@@ -568,6 +616,15 @@ ansible-playbook playbook.yml
 cd .. && gh secret set EC2_HOST --body "$(cd infra && terraform output -raw ip)"
 git commit --allow-empty -m "rebuild" && git push
 ```
+
+No `gh`? The only line that needs it is the third. Run
+`cd infra && terraform output -raw ip`, then paste that number into
+**Settings → Secrets and variables → Actions → `EC2_HOST` → Update**, and push.
+
+> **The address changes every time.** `EC2_HOST` is the one thing that does not
+> update itself — Terraform rewrites `inventory.ini`, but GitHub only knows what
+> you last told it. Forget this and the pipeline deploys to a server that is no
+> longer there.
 
 About four minutes, and the app is live again at a new address.
 

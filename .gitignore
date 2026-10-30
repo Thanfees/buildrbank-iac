@@ -16,3 +16,6 @@ infra/.terraform/
 
 # The private key Terraform generates for you.
 *.pem
+
+# Written by Terraform on every apply.
+infra/inventory.ini

@@ -8,8 +8,9 @@
 
 terraform {
   required_providers {
-    aws = { source = "hashicorp/aws", version = "~> 6.0" }
-    tls = { source = "hashicorp/tls", version = "~> 4.0" }
+    aws   = { source = "hashicorp/aws", version = "~> 6.0" }
+    tls   = { source = "hashicorp/tls", version = "~> 4.0" }
+    local = { source = "hashicorp/local", version = "~> 2.4" }
   }
 }
 
@@ -121,6 +122,26 @@ resource "aws_instance" "bank" {
 }
 
 # --- what you need next ----------------------------------------------
+
+# --- the handover to Ansible ---------------------------------------
+# Terraform knows the address the moment the server exists, so it writes
+# Ansible's inventory itself. Nobody retypes an IP, nobody works from a
+# stale one, and the file never goes into git.
+
+resource "local_file" "inventory" {
+  filename        = "${path.module}/inventory.ini"
+  file_permission = "0644"
+
+  content = <<-EOT
+    # Written by Terraform on every apply. Do not edit by hand.
+    [bank]
+    ${aws_instance.bank.public_ip}
+
+    [bank:vars]
+    ansible_user=ubuntu
+    ansible_ssh_private_key_file=./buildrbank-key.pem
+  EOT
+}
 
 output "ip" {
   description = "The server's public address. This is your EC2_HOST secret."
