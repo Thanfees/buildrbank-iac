@@ -18,7 +18,7 @@ it all again in about four minutes, which is the part that matters.
 and the whole session costs a few cents. Skip it and it is about **$15 a
 month**. There is a checklist at the end.
 
----
+-----
 
 ## Part A · On your laptop
 
