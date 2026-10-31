@@ -1,5 +1,7 @@
 # The server, written down — the whole thing, step by step
 
+**The repository:** <https://github.com/darshaka-weerasinghe/buildrbank-iac>
+
 Eighteen steps. You do every one by hand: a browser, a terminal, and your
 own typing. Nothing here needs an assistant, and nothing here is magic.
 
@@ -7,9 +9,10 @@ By the end you will have built a server, configured it, deployed to it, and
 destroyed it — **without opening the AWS console once.** Then you will build
 it all again in about four minutes, which is the part that matters.
 
-> **Copy commands from this file on GitHub, not from the PDF handout.** The
-> handout's font joins `--` and `//` into one character when you copy it,
-> which breaks `--name` and `https://` in ways the error message disguises.
+> **Copy commands from [this file on GitHub](https://github.com/darshaka-weerasinghe/buildrbank-iac/blob/main/STEPS.md), not
+> from the PDF handout.** The handout's font joins `--` and `//` into one
+> character when you copy it, which breaks `--name` and `https://` in ways the
+> error message disguises.
 
 **What this costs.** A `t3.small` is about 2 US cents an hour. Follow step 17
 and the whole session costs a few cents. Skip it and it is about **$15 a
@@ -21,7 +24,12 @@ month**. There is a checklist at the end.
 
 ### 1 · Fork it, and turn Actions on
 
-Actions only runs in a repo you own. **Fork**, top right of the repo page.
+Open the repository and press **Fork**, top right:
+
+<https://github.com/darshaka-weerasinghe/buildrbank-iac>
+
+Actions only runs in a repo you own, which is why you fork rather than clone
+mine directly.
 
 Then — and this one is easy to miss — open the **Actions** tab of *your fork*.
 GitHub disables workflows on a new fork and shows a yellow banner:
