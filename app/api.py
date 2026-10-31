@@ -34,6 +34,7 @@ CONFIG = settings.configure()
 
 # Only now is it safe to import the agent.
 from buildrbank.app import build_app                            # noqa: E402
+from buildrbank.db import db                                    # noqa: E402
 from buildrbank.orchestration.sop_specs import SOP_SPECS        # noqa: E402
 
 from fastapi import FastAPI, HTTPException    # noqa: E402
@@ -158,8 +159,55 @@ def sops() -> dict:
     return out
 
 
+# Remembered for a few seconds, because /health is polled - by the page
+# on every load, and by the pipeline ten times in a row after a deploy.
+# Without this, a slow or dead database would make every one of those
+# calls wait for the same timeout.
+_DB_PROBE: tuple[float, bool, str] | None = None
+
+
+def _supabase_reachable(ttl: float = 10.0) -> tuple[bool, str]:
+    """Actually ask Supabase a question, rather than trusting the config.
+
+    One row, no filters, no named column - the same shape scripts/check.py
+    uses. Naming a column would couple this to the schema and report a
+    healthy database as broken the day someone renames something. What
+    matters is not the answer but whether the round trip happens at all.
+    """
+    global _DB_PROBE
+    now = time.monotonic()
+    if _DB_PROBE is not None and now - _DB_PROBE[0] < ttl:
+        return _DB_PROBE[1], _DB_PROBE[2]
+    try:
+        db().table("customers").select("*", count="exact").limit(1).execute()
+        ok, detail = True, "reachable"
+    except Exception as exc:                      # noqa: BLE001 - report anything
+        ok, detail = False, f"{type(exc).__name__}: {exc}"[:160]
+    _DB_PROBE = (now, ok, detail)
+    return ok, detail
+
+
 @api.get("/health")
 def health() -> dict:
-    """What this server is configured to do. Safe to show - no keys in here."""
-    return {"status": "ok" if AGENT is not None else "starting",
+    """Is this server actually able to work? Safe to show - no keys in here.
+
+    Three answers, and the difference matters:
+      starting   the agent has not finished being built
+      degraded   the agent is up, but it cannot reach Supabase
+      ok         it is up AND the database answered just now
+
+    The deploy job in .github/workflows/pipeline.yml waits for "ok", so a
+    paused or deleted Supabase project fails the deploy instead of waiting
+    to surprise someone on their first message.
+    """
+    db_ok, db_detail = _supabase_reachable()
+    if AGENT is None:
+        status = "starting"
+    elif not db_ok:
+        status = "degraded"
+    else:
+        status = "ok"
+    return {"status": status,
+            "supabase_reachable": db_ok,
+            "supabase_detail": db_detail,
             **settings.summary(CONFIG)}

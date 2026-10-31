@@ -81,13 +81,17 @@ it and wait for the dashboard to say the project is active. If the project is
 gone entirely, make a new one, run `scripts/schema.sql` in the SQL editor, then
 `python scripts/seed.py`, and put the new URL and key in `.env`.
 
-> **Why this matters more than it looks.** A dead Supabase does not stop the app
-> from starting, and it does not stop `/health` from saying `ok`. Everything
-> will look perfect — green pipeline, page loads — right up until you type your
-> first message and get
-> `ConnectError: [Errno -2] Name or service not known`. That error is DNS
-> failing on a hostname that no longer exists, and nothing about it mentions
-> Supabase.
+> **Why this matters more than it looks.** A dead Supabase does not stop the
+> app from *starting* — the container runs quite happily. What it stops is the
+> app from *working*, and the first thing to notice is your deploy going red at
+> **Is production actually up?**, with `/health` answering `"status":"degraded"`
+> and a `supabase_detail` naming the real problem.
+>
+> That is deliberate. `/health` makes one real query to Supabase before it will
+> say `ok`, so a paused project fails the deploy loudly instead of waiting to
+> surprise you on your first message with
+> `ConnectError: [Errno -2] Name or service not known` — an error that never
+> mentions Supabase at all.
 
 ✓ The Supabase dashboard shows your project as **active**, not paused.
 
@@ -506,16 +510,27 @@ logged into.
 
 ### When the page loads but the agent will not answer
 
-You send a message and get back:
+Two shapes, same cause.
 
-```
-The agent could not finish that turn:
-ConnectError: [Errno -2] Name or service not known
+**The deploy job goes red** at *Is production actually up?*. Curl `/health`
+yourself and read it:
+
+```bash
+curl -s http://YOUR-IP:8000/health
 ```
 
-The app is fine. Something in your `.env` points at a hostname that does not
-exist — nine times out of ten a Supabase project that is paused or deleted.
-Wake it as in step 3, then put the corrected file on the server:
+```json
+{"status":"degraded","supabase_reachable":false,
+ "supabase_detail":"ConnectError: [Errno -2] Name or service not known", ...}
+```
+
+**Or the page loads and a message fails** with that same `ConnectError` — which
+happens if the database died *after* a deploy that was green at the time.
+
+Either way the app itself is fine. Something in your `.env` points at a
+hostname that does not exist — nine times out of ten a Supabase project that is
+paused or deleted. Wake it as in step 3, then put the corrected file on the
+server:
 
 ```bash
 cd infra

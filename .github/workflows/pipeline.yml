@@ -207,9 +207,10 @@ jobs:
 
       - name: Is production actually up?
         # The deploy step going green only means the commands ran. This asks
-        # the server itself. /health says "ok" only after the agent has been
-        # built and has reached Supabase - so a green tick here means the
-        # whole thing works, not just that Docker was willing to start it.
+        # the server itself. /health answers "ok" only when the agent is
+        # built AND a real query to Supabase came back - see app/api.py. So a
+        # green tick here means the thing works, not just that Docker was
+        # willing to start it. A paused Supabase project fails this step.
         run: |
           for i in $(seq 1 10); do
             if curl -fsS "http://${{ secrets.EC2_HOST }}:8000/health" | grep -q '"status":"ok"'; then
