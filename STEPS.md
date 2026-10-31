@@ -105,14 +105,39 @@ gone entirely, make a new one, run `scripts/schema.sql` in the SQL editor, then
 
 ### 4 · Prove it still works before you change anything
 
+**Arch / BlackArch Linux**
+
+Use Python **3.12**, the same version as the Dockerfile and GitHub Actions.
+Arch's system Python can be newer; use `uv` to install 3.12 separately and
+create the project's virtual environment:
+
+```bash
+sudo pacman -Syu --needed uv
+uv python install 3.12
+uv venv --python 3.12 --seed .venv
+source .venv/bin/activate
+```
+
+`--seed` puts pip in the virtual environment for the next commands. This
+keeps the app's dependencies separate from Arch's system Python. See
+[uv's Python installation guide](https://docs.astral.sh/uv/guides/install-python/).
+
+**macOS / Ubuntu / WSL**
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt -r requirements-dev.txt
-python scripts/check.py
 ```
 
 Windows: `.venv\Scripts\activate`, and use `python`, not `python3`.
+
+**Then, on every platform**, from the repository root:
+
+```bash
+python --version   # 3.12.x on the Arch setup above
+python -m pip install -r requirements.txt -r requirements-dev.txt
+python scripts/check.py
+```
 
 ✓ Six green ticks.
 
@@ -128,6 +153,24 @@ it says so. It is worth installing anyway for one line in step 12 — it removes
 the single most error-prone moment of Week 06.
 
 Find your row and do only that one.
+
+**Arch / BlackArch Linux**
+
+```bash
+sudo pacman -Syu --needed terraform ansible aws-cli-v2 openssh
+sudo pacman -S --needed github-cli    # optional; provides gh
+```
+
+[Terraform](https://archlinux.org/packages/extra/x86_64/terraform/) and
+[AWS CLI v2](https://archlinux.org/packages/extra/any/aws-cli-v2/) are in
+Arch's official repositories; no AUR helper or Ubuntu package repositories
+are needed. `--needed` skips packages already up to date, and `-Syu` updates
+the system along with the installation.
+
+Run Ansible directly on this Linux machine. The playbook installs Docker
+on the **Ubuntu EC2 server**, so its `apt` task is correct even though your
+laptop uses pacman. Continue with the version checks below, then step 6;
+the remaining AWS and GitHub steps are the same on Arch.
 
 **macOS**
 
